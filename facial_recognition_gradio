@@ -1,0 +1,57 @@
+import gradio as gr
+from keras.models import load_model
+from tensorflow.keras.utils import load_img, img_to_array
+from tensorflow.keras.applications.vgg16 import preprocess_input
+import numpy as np
+
+# Load your trained model
+loaded_model = load_model("facial_recognition_model.keras")
+
+# Class names (must be in the same order as training)
+class_names = [
+    "Angelina Jolie",
+    "Brad Pitt",
+    "Denzel Washington",
+    "Hugh Jackman",
+    "Jennifer Lawrence",
+    "Johnny Depp",
+    "Kate Winslet",
+    "Leonardo DiCaprio",
+    "Megan Fox",
+    "Natalie Portman",
+    "Nicole Kidman",
+    "Robert Downey Jr",
+    "Sandra Bullock",
+    "Scarlett Johansson",
+    "Tom Cruise",
+    "Tom Hanks",
+    "Will Smith"
+]
+
+def predict(image):
+    # Preprocess image
+    img = load_img(image, target_size=(224, 224))
+    img_array = img_to_array(img)
+    img_array = img_array.reshape(1, 224, 224, 3)
+    img_array = preprocess_input(img_array)
+
+    # Predict
+    pred = loaded_model.predict(img_array)
+    pred_class = np.argmax(pred, axis=1)[0]
+    confidence = np.max(pred)
+
+    return {
+        class_names[pred_class]: float(confidence)
+    }
+
+# Gradio interface
+iface = gr.Interface(
+    fn=predict,
+    inputs=gr.Image(type="filepath"),
+    outputs=gr.Label(num_top_classes=3),
+    title="Celebrity Face Recognition",
+    description="Upload an image to identify the celebrity."
+)
+
+if __name__ == "__main__":
+    iface.launch()
