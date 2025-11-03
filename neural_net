@@ -1,0 +1,65 @@
+
+
+from tensorflow.keras.utils import image_dataset_from_directory
+
+
+train_dir = "facial_recognition/Celebrity_Faces_Dataset/training_set"
+test_dir = "facial_recognition/Celebrity_Faces_Dataset/test_set"
+
+
+
+train_ds = image_dataset_from_directory(train_dir, batch_size=32,
+
+                                        image_size=(224, 224), shuffle=True,
+
+                                        label_mode="categorical",)
+
+test_ds = image_dataset_from_directory(test_dir, batch_size=32,
+
+                                       image_size=(224, 224), label_mode="categorical")
+
+
+
+from tensorflow.keras.applications.vgg16 import VGG16 ,preprocess_input
+
+train_processed=train_ds.map(lambda img, label : (preprocess_input(img),label))
+test_processed=test_ds.map(lambda img, label : (preprocess_input(img),label))
+
+base_model = VGG16(include_top=False,weights="/Users/dhruv/PycharmProjects/AIML_MODELS/facial_recognition/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5")
+base_model.summary()
+
+
+for layer in base_model.layers:
+    print(layer)
+    layer.trainable = False
+
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Input, Flatten, Dense, Dropout, Conv2D, MaxPooling2D, BatchNormalization
+
+
+model=Sequential()
+model.add(Input(shape=(224,224,3)))
+model.add(base_model)
+model.add(Conv2D(256,(3,3),activation='relu'))
+model.add(MaxPooling2D())
+model.add(Flatten())
+model.add(Dense(256,activation='relu'))
+model.add(BatchNormalization())
+model.add(Dropout(0.4))
+model.add(Dense(128,activation='relu'))
+model.add(BatchNormalization())
+model.add(Dropout(0.4))
+model.add(Dense(17,activation='softmax'))
+
+
+
+# Train the model
+
+
+model.compile(loss="categorical_crossentropy",optimizer="adam", metrics=["accuracy"])
+model.summary()
+
+model.fit(train_processed, epochs = 30, batch_size = 128,  validation_data=test_processed)
+
+model.save('facial_recognition_model.keras')
